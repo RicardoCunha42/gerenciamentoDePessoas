@@ -11,6 +11,8 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -29,7 +31,13 @@ public class Pessoa {
     private String nome;
     private LocalDate dataNascimento;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "pessoa", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Endereco> enderecos;
+
+
+    public void addEndereco(Endereco endereco) {
+        this.enderecos.add(endereco);
+    }
 
 }
