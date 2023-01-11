@@ -8,6 +8,8 @@ import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,11 +26,12 @@ public class Endereco {
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
     private String logradouro;
-    private Long cep;
+    private String cep;
     private Long numero;
     private String cidade;
     private boolean principal;
 
+    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     private Pessoa pessoa;
 }
