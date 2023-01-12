@@ -60,7 +60,7 @@ public class PessoaController {
     public ResponseEntity<String> deletePessoa(@PathVariable Long matricula){
         this.pessoaService.delete(matricula);
 
-        return new ResponseEntity<String>("Usuário deletado!", HttpStatus.OK);
+        return new ResponseEntity<String>("Pessoa deletada!", HttpStatus.OK);
     }
 
     @ResponseStatus(value = HttpStatus.BAD_REQUEST, reason = "Mátricula inválida!")
