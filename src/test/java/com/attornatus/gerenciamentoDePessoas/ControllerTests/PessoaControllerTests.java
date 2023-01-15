@@ -1,80 +1,127 @@
-package com.attornatus.gerenciamentoDePessoas.ControllerTests;
+package com.attornatus.gerenciamentoDePessoas.controllerTests;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import java.io.IOException;
-import java.util.List;
-
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
-
-import com.attornatus.gerenciamentoDePessoas.controller.PessoaController;
+import com.attornatus.gerenciamentoDePessoas.AbstractTest;
+import com.attornatus.gerenciamentoDePessoas.PopulateDb;
 import com.attornatus.gerenciamentoDePessoas.dto.PessoaDto;
 import com.attornatus.gerenciamentoDePessoas.model.Pessoa;
-import com.attornatus.gerenciamentoDePessoas.service.PessoaService;
 
-@SpringBootTest
-@TestMethodOrder(OrderAnnotation.class)
-public class PessoaControllerTests {
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+
+import java.util.List;
+
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+
+public class PessoaControllerTests extends AbstractTest {
     @Autowired
-    private PessoaController pessoaController;
-    @Autowired
-    private PessoaService pessoaService;
-
-    @Order(1)
-    @Test
-    public void verifyCreatePessoa() throws IOException, InterruptedException {
-        ResponseEntity<Pessoa> pessoa = this.pessoaController.createPessoa(new PessoaDto("Slartibartfast"
-            , "05/08/1988"));
-
-        assertInstanceOf(ResponseEntity.class, pessoa);
-        assertInstanceOf(Pessoa.class, pessoa.getBody());
-    }
-
-    @Order(2)
-    @Test
-    public void verifyPessoaUpdate() throws IOException, InterruptedException {
-        Pessoa pessoa1 = this.pessoaService.get(Long.valueOf(1));
-        ResponseEntity<Pessoa> pessoa = this.pessoaController.updatePessoa(Long.valueOf(1),
-            new PessoaDto("Geralt", "05/08/1988"));
-
-        assertInstanceOf(ResponseEntity.class, pessoa);
-        assertEquals(pessoa1.getMatricula(), pessoa.getBody().getMatricula());
-        assertNotEquals(pessoa1.getNome(), pessoa.getBody().getNome());
-    }
-
-    @Order(3)
-    @Test
-    public void verifyGetPessoaResponse() throws IOException, InterruptedException {
-        ResponseEntity<Pessoa> pessoa = this.pessoaController.getPessoa(Long.valueOf(1));
-
-        assertInstanceOf(ResponseEntity.class, pessoa);
-        assertInstanceOf(Pessoa.class, pessoa.getBody());
+    private PopulateDb populateDb;
+    @Override
+    @Before
+    public void setUp() {
+        super.setUp();
     }
     
-    @Order(4)
     @Test
-    public void verifyGetPessoas() throws IOException, InterruptedException {
-        ResponseEntity<List<Pessoa>> pessoa = this.pessoaController.getPessoas();
+    public void createPessoa() throws Exception {
+        String uri = "/pessoas";
 
-        assertInstanceOf(ResponseEntity.class, pessoa);
-        assertInstanceOf(List.class, pessoa.getBody());
+        PessoaDto pessoaDto = new PessoaDto();
+        pessoaDto.setNome("geralt");
+        pessoaDto.setData("02/05/1996");
+        String inputJson = super.mapToJson(pessoaDto);
+
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post(uri)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .content(inputJson)).andReturn();
+        
+        int status = mvcResult.getResponse().getStatus();
+        Pessoa pessoa = super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), Pessoa.class);
+
+        assertEquals(201, status);
+        assertInstanceOf(Pessoa.class, pessoa); 
     }
 
-    @Order(5)
+    
     @Test
-    public void verifyDeletePessoa() throws IOException, InterruptedException {
-        this.pessoaService.createPessoa(new PessoaDto("Geralt", "05/08/1988"));
-        ResponseEntity<String> pessoa = this.pessoaController.deletePessoa(Long.valueOf(2));
+    public void updatePessoa() throws Exception {
+        Pessoa pessoaDb = this.populateDb.populatePessoaDb();
+        String uri = "/pessoas/" + pessoaDb.getMatricula();
+
+        PessoaDto pessoaDto = new PessoaDto();
+        pessoaDto.setNome("Ciri");
+        pessoaDto.setData("02/05/1996");
+        String inputJson = super.mapToJson(pessoaDto);
+
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.put(uri)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .content(inputJson)).andReturn();
         
-        assertInstanceOf(ResponseEntity.class, pessoa);
-        assertEquals("Pessoa deletada!", pessoa.getBody());
+        int status = mvcResult.getResponse().getStatus();
+        Pessoa pessoa = super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), Pessoa.class);
+
+        assertEquals(200, status);
+        assertInstanceOf(Pessoa.class, pessoa);
+        assertEquals("Ciri", pessoa.getNome()); 
+    }
+
+    
+    @Test
+    public void getPessoa() throws Exception {
+        Pessoa pessoaDb = this.populateDb.populatePessoaDb();
+        String uri = "/pessoas/" + pessoaDb.getMatricula();
+        
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get(uri)
+            .accept(MediaType.APPLICATION_JSON_VALUE)).andReturn();
+        
+        int status = mvcResult.getResponse().getStatus();
+        Pessoa pessoa = super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), Pessoa.class);
+
+        assertEquals(200, status);
+        assertInstanceOf(Pessoa.class, pessoa);
+        assertEquals(pessoaDb.getMatricula(), pessoa.getMatricula());
+    }
+
+    
+    @Test
+    public void getPessoas() throws Exception {
+        String uri = "/pessoas";
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get(uri)
+            .accept(MediaType.APPLICATION_JSON_VALUE)).andReturn();
+        
+        int status = mvcResult.getResponse().getStatus();
+
+        @SuppressWarnings("unchecked")
+        List<Pessoa> pessoas =  super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), List.class);
+
+        assertEquals(200, status);
+        assertInstanceOf(List.class, pessoas);
+    }
+
+    
+    @Test
+    public void deletePessoa() throws Exception {
+        Pessoa pessoaDb = this.populateDb.populatePessoaDb();
+        String uri = "/pessoas/" + pessoaDb.getMatricula();
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.delete(uri)).andReturn();
+        
+        int status = mvcResult.getResponse().getStatus();
+        String message = mvcResult.getResponse().getContentAsString();
+
+        assertEquals(200, status);
+        assertEquals("Pessoa deletada!", message);
     }
 
 }

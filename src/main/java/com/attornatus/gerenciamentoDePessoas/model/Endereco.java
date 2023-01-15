@@ -7,6 +7,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -25,9 +27,19 @@ public class Endereco {
     @Id
     @GeneratedValue (strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @NotBlank(message = "O campo logradouro deve ser preenchido")
     private String logradouro;
+
+    @NotBlank(message = "O campo CEP deve ser preenchido")
+    @Pattern(regexp = "\\d+", message = "Apenas numerais no campo CEP")
     private String cep;
-    private Long numero;
+
+    @NotBlank(message = "O campo numero deve ser preenchido")
+    @Pattern(regexp = "\\d+", message = "Apenas numerais no campo numero")
+    private String numero;
+
+    @NotBlank(message = "O campo cidade deve ser preenchido")
     private String cidade;
     private boolean principal;
 

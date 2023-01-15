@@ -1,100 +1,97 @@
-package com.attornatus.gerenciamentoDePessoas.ControllerTests;
+package com.attornatus.gerenciamentoDePessoas.controllerTests;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.util.List;
 
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.Before;
+import org.junit.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import com.attornatus.gerenciamentoDePessoas.controller.EnderecoController;
-import com.attornatus.gerenciamentoDePessoas.dto.PessoaDto;
+import com.attornatus.gerenciamentoDePessoas.AbstractTest;
+import com.attornatus.gerenciamentoDePessoas.PopulateDb;
 import com.attornatus.gerenciamentoDePessoas.model.Endereco;
-import com.attornatus.gerenciamentoDePessoas.service.EnderecoService;
-import com.attornatus.gerenciamentoDePessoas.service.PessoaService;
+import com.attornatus.gerenciamentoDePessoas.model.Pessoa;
 
-@SpringBootTest
-@TestMethodOrder(OrderAnnotation.class)
-public class EnderecoControllerTests {
+public class EnderecoControllerTests extends AbstractTest {
     @Autowired
-    private EnderecoController enderecoController;
-    @Autowired
-    private EnderecoService enderecoService;
-    @Autowired
-    private PessoaService pessoaService;
+    private PopulateDb populateDb;
 
-    @Order(1)
+    @Override
+    @Before
+    public void setUp() {
+        super.setUp();
+    }
+
     @Test
-    public void verifyCreateEndereco(){
-        this.pessoaService.createPessoa(new PessoaDto("Slartibartfast", 
-            "05/08/1988"));
+    public void createEndereco() throws Exception{
+        Pessoa pessoaDb = this.populateDb.populatePessoaDb();
+        String uri = "/enderecos/" + pessoaDb.getMatricula();
 
         Endereco endereco = new Endereco();
         endereco.setLogradouro("Rua 84");
-        endereco.setCep("8888-000");
-        endereco.setNumero(Long.valueOf(450));
-        endereco.setCidade("Recife");
-        endereco.setPrincipal(true);
-
-        ResponseEntity<Endereco> resp = this.enderecoController
-            .createEndereco(Long.valueOf(1), endereco);
-
-        assertInstanceOf(ResponseEntity.class, resp);
-        assertInstanceOf(Endereco.class, resp.getBody());
-
-    }
-
-    @Order(2)
-    @Test
-    public void verifyGetEnderecos(){
-        ResponseEntity<List<Endereco>> resp = this.enderecoController
-            .getEnderecos(Long.valueOf(1));
-
-        assertInstanceOf(ResponseEntity.class, resp);
-        assertInstanceOf(List.class, resp.getBody());
-    }
-
-    @Order(3)
-    @Test
-    public void verifyGetEnderecoPrincipal(){
-        Endereco endereco = new Endereco();
-        endereco.setLogradouro("Rua 20");
-        endereco.setCep("8888-000");
-        endereco.setNumero(Long.valueOf(60));
+        endereco.setCep("8888000");
+        endereco.setNumero("450");
         endereco.setCidade("Recife");
         endereco.setPrincipal(false);
 
-        ResponseEntity<Endereco> resp = this.enderecoController
-            .getEnderecoPrincipal(Long.valueOf(1));
+        String inputJson = super.mapToJson(endereco);
 
-        assertInstanceOf(ResponseEntity.class, resp);
-        assertInstanceOf(Endereco.class, resp.getBody());
-        assertEquals(true, resp.getBody().isPrincipal());
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.post(uri)
+            .contentType(MediaType.APPLICATION_JSON_VALUE)
+            .content(inputJson)).andReturn();
+        
+        int status = mvcResult.getResponse().getStatus();
+        Endereco enderecoSalvo = super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), Endereco.class);
+
+        assertEquals(201, status);
+        assertInstanceOf(Endereco.class, enderecoSalvo);
     }
 
-    @Order(4)
     @Test
-    public void verifyPrincipalSubstitution(){
-        Endereco principal1 = this.enderecoService.getPrincipal(Long.valueOf(1));
+    public void getEnderecos() throws Exception {
+        Pessoa pessoaDb = this.populateDb.populatePessoaEEnderecoDb();
+        String uri = "/enderecos/" + pessoaDb.getMatricula();
 
-        Endereco endereco = new Endereco();
-        endereco.setLogradouro("Rua 50");
-        endereco.setCep("84588-000");
-        endereco.setNumero(Long.valueOf(63));
-        endereco.setCidade("Recife");
-        endereco.setPrincipal(true);
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get(uri)
+            .accept(MediaType.APPLICATION_JSON_VALUE)).andReturn();
+
+        int status = mvcResult.getResponse().getStatus();
+
+        @SuppressWarnings("unchecked")
+        List<Endereco> enderecos = super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), List.class);
+
+        assertEquals(200, status);
+        assertInstanceOf(List.class, enderecos);
+        this.populateDb.dePopulateDb();
+    }
+
+    @Test
+    public void getEnderecoPrincipal() throws Exception {
+        Pessoa pessoaDb = this.populateDb.populatePessoaEEnderecoDb();
+        String uri = "/enderecos/principal/" + pessoaDb.getMatricula();
+
+        MvcResult mvcResult = mvc.perform(MockMvcRequestBuilders.get(uri)
+            .accept(MediaType.APPLICATION_JSON_VALUE)).andReturn();
         
-        this.enderecoService.create(Long.valueOf(1), endereco);
-        Endereco principal2 = this.enderecoService.getPrincipal(Long.valueOf(1));
-    
-        assertNotEquals(principal1.getId(), principal2.getId());
+        int status = mvcResult.getResponse().getStatus();
+
+        Endereco endereco =  super.mapFromJson(mvcResult
+            .getResponse()
+            .getContentAsString(), Endereco.class);
+
+        assertEquals(200, status);
+        assertInstanceOf(Endereco.class, endereco);
+        assertEquals(true, endereco.isPrincipal());
+        this.populateDb.dePopulateDb();
     }
     
 }

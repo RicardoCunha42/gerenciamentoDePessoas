@@ -4,12 +4,16 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.BindingResult;
 
 import com.attornatus.gerenciamentoDePessoas.model.Endereco;
 import com.attornatus.gerenciamentoDePessoas.model.Pessoa;
 import com.attornatus.gerenciamentoDePessoas.repository.EnderecoRepository;
 import com.attornatus.gerenciamentoDePessoas.repository.PessoaRepository;
+import com.attornatus.gerenciamentoDePessoas.validation.MessageManager;
 
 @Service
 public class EnderecoService {
@@ -17,8 +21,14 @@ public class EnderecoService {
     private PessoaRepository pessoaRepository;
     @Autowired
     private EnderecoRepository enderecoRepository;
+    @Autowired
+    private MessageManager messageManager; 
 
-    public Endereco create(Long matricula, Endereco endereco) {
+    public ResponseEntity<Object> create(Long matricula, Endereco endereco, BindingResult result) {
+        if(result.hasErrors()) {
+            List<String> errors = this.messageManager.getErrors(result);
+            return new ResponseEntity<Object>(errors, HttpStatus.BAD_REQUEST);
+        }
 
         if(endereco.isPrincipal()) {
             Optional<Pessoa> maybepessoa = this.pessoaRepository.findByIdJoinEndereco(matricula);
@@ -38,7 +48,9 @@ public class EnderecoService {
             endereco.setPessoa(pessoa);
         }
         
-        return this.enderecoRepository.save(endereco);
+        Endereco enderecoSalvo = this.enderecoRepository.save(endereco);
+
+        return new ResponseEntity<Object>(enderecoSalvo, HttpStatus.CREATED);
     }
 
     public List<Endereco> getAllByPessoa(Long matricula) {
