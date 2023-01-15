@@ -1,4 +1,4 @@
-package com.attornatus.gerenciamentoDePessoas.errorsTests;
+package com.attornatus.gerenciamentoDePessoas.errorResponseTests;
 
 import static org.junit.Assert.assertEquals;
 
